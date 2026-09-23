@@ -3,51 +3,28 @@ on:
   workflow_dispatch:
   push:
     branches: [ main, master ]
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: stable
           cache: true
-
-      - name: Structure Flutter Project Directories
+      - name: Create Android platform files
         run: |
-          # 1. Back up your root source files to a temporary location
-          mkdir -p /tmp/user_code
-          [ -f main.dart ] && cp main.dart /tmp/user_code/
-          [ -f state.dart ] && cp state.dart /tmp/user_code/
-          [ -f pubspec.yaml ] && cp pubspec.yaml /tmp/user_code/
-          [ -f logo.png ] && cp logo.png /tmp/user_code/
-          
-          # 2. Clear out the root to let 'flutter create' run cleanly
-          rm -rf * .gitignore
-          
-          # 3. Generate a brand new functional flutter project in the root
-          flutter create --org com.faizeraza --project-name maktab_app --platforms=android .
-          
-          # 4. Safely overwrite with your specific files into the correct subfolders
-          mkdir -p lib assets
-          [ -f /tmp/user_code/main.dart ] && cp /tmp/user_code/main.dart lib/main.dart
-          [ -f /tmp/user_code/state.dart ] && cp /tmp/user_code/state.dart lib/state.dart
-          [ -f /tmp/user_code/pubspec.yaml ] && cp /tmp/user_code/pubspec.yaml pubspec.yaml
-          [ -f /tmp/user_code/logo.png ] && cp /tmp/user_code/logo.png assets/logo.png
-
-      - name: Build Android Release APK
-        run: flutter build apk --release
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+          flutter create --org com.faizeraza --project-name maktab_app --platforms=android /tmp/scaffold
+          cp -r /tmp/scaffold/android ./android
+          sed -i 's/android:label="[^"]*"/android:label="Maktab Madrasa"/' android/app/src/main/AndroidManifest.xml
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
         with:
           name: maktab-app-apk
           path: build/app/outputs/flutter-apk/app-release.apk
